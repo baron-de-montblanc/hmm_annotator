@@ -42,7 +42,7 @@ def _make_ssins_layout():
             x=0.5, xanchor="center", font=dict(size=18)
         ),
         xaxis=dict(title="Frequency Step", type="linear", range=[-5, len(data.ssins)+5]),
-        yaxis=dict(title="Time Step", type="linear"),
+        yaxis=dict(title="Amplitude Across DTV-7", type="linear"),
         font=dict(size=14),
         autosize=True,
         margin=dict(l=10, r=10, t=30, b=10),
@@ -53,7 +53,7 @@ def _make_annotations_layout():
     return go.Layout(
         title=dict(text="Annotations", x=0.5, xanchor="center", font=dict(size=18)),
         xaxis=dict(title="Frequency Step", type="linear", range=[-5, len(data.ssins)+5]),
-        yaxis=dict(title="HMM State", type="linear", range=[0.5, 3.5], tickmode="array", tickvals=[1,2,3]),
+        yaxis=dict(title="HMM State", type="linear", range=[0.5, 4.5], tickmode="array", tickvals=[1,2,3,4]),
         font=dict(size=14),
         autosize=True,
         margin=dict(l=10, r=10, t=30, b=10),
@@ -74,8 +74,8 @@ def _build_annotations_figure():
     fig.add_trace(go.Scatter(
         x=np.arange(len(data.annotations)),
         y=data.annotations,
-        mode="markers",
-        marker=dict(size=6, color="red"),
+        mode="lines",
+        line=dict(color="red", width=4),
     ))
     return fig
 
@@ -118,6 +118,13 @@ app.layout = dbc.Container(
                             dbc.Button(
                                 "Set State 3 (RFI-Decaying)",
                                 id="button-set-3",
+                                outline=False,
+                                color="primary",
+                                className="me-1",
+                            ),
+                            dbc.Button(
+                                "Set State 4 (Blip)",
+                                id="button-set-4",
                                 outline=False,
                                 color="primary",
                                 className="me-1",
@@ -220,10 +227,11 @@ app.layout = dbc.Container(
     Input("button-set-1", "n_clicks"),
     Input("button-set-2", "n_clicks"),
     Input("button-set-3", "n_clicks"),
+    Input("button-set-4", "n_clicks"),
     State("ssins-graph", "selectedData"),
     prevent_initial_call=True,
 )
-def set_state(b1,b2,b3, selectedData):
+def set_state(b1,b2,b3,b4, selectedData):
 
     points = selectedData["points"]
     x_selected = [p["x"] for p in points]
@@ -235,6 +243,8 @@ def set_state(b1,b2,b3, selectedData):
         state_val = 2
     elif triggered == "button-set-3":
         state_val = 3
+    elif triggered == "button-set-4":
+        state_val = 4
     else:
         state_val = None
 
@@ -247,8 +257,8 @@ def set_state(b1,b2,b3, selectedData):
         go.Scatter(
             x=np.arange(len(data.annotations)),
             y=data.annotations,
-            mode="markers",
-            marker=dict(size=6, color="red"),
+            mode="lines",
+            line=dict(color="red", width=4),
             name="Annotations",
         )
     )
