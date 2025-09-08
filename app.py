@@ -99,40 +99,49 @@ app.layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(
-                    dbc.ButtonGroup(
-                        [
-                            dbc.Button(
-                                "Set State 1 (Clean)",
-                                id="button-set-1",
-                                outline=False,
-                                color="primary",
-                                className="me-1",
-                            ),
-                            dbc.Button(
-                                "Set State 2 (RFI-Rising)",
-                                id="button-set-2",
-                                outline=False,
-                                color="primary",
-                                className="me-1",
-                            ),
-                            dbc.Button(
-                                "Set State 3 (RFI-Decaying)",
-                                id="button-set-3",
-                                outline=False,
-                                color="primary",
-                                className="me-1",
-                            ),
-                            dbc.Button(
-                                "Set State 4 (Blip)",
-                                id="button-set-4",
-                                outline=False,
-                                color="primary",
-                                className="me-1",
-                            ),
-                        ],
-                        className="mb-2",
-                    ),
+                    [
+                        dbc.ButtonGroup(
+                            [
+                                dbc.Button(
+                                    "Set State 1 (Clean)",
+                                    id="button-set-1",
+                                    outline=False,
+                                    color="primary",
+                                    className="me-1",
+                                ),
+                                dbc.Button(
+                                    "Set State 2 (RFI-Rising)",
+                                    id="button-set-2",
+                                    outline=False,
+                                    color="primary",
+                                    className="me-1",
+                                ),
+                                dbc.Button(
+                                    "Set State 3 (RFI-Decaying)",
+                                    id="button-set-3",
+                                    outline=False,
+                                    color="primary",
+                                    className="me-1",
+                                ),
+                                dbc.Button(
+                                    "Set State 4 (Blip)",
+                                    id="button-set-4",
+                                    outline=False,
+                                    color="primary",
+                                    className="me-1",
+                                ),
+                            ],
+                        ),
+                        dbc.Button(
+                            "Set All Clean",
+                            id="button-set-all-clean",
+                            outline=False,
+                            color="primary",
+                            className="me-1",
+                        ),
+                    ],
                     width="auto",
+                    className="mb-2",
                 ),
             ],
             className="mt-2 mb-2",
@@ -290,13 +299,17 @@ app.layout = dbc.Container(
     Input("button-set-2", "n_clicks"),
     Input("button-set-3", "n_clicks"),
     Input("button-set-4", "n_clicks"),
+    Input("button-set-all-clean", "n_clicks"),
     State("ssins-graph", "selectedData"),
     prevent_initial_call=True,
 )
-def set_state(b1,b2,b3,b4, selectedData):
+def set_state(b1,b2,b3,b4,ball, selectedData):
 
-    points = selectedData["points"]
-    x_selected = [p["x"] for p in points]
+    try:
+        points = selectedData["points"]
+        x_selected = [p["x"] for p in points]
+    except TypeError:
+        x_selected = None
 
     triggered = ctx.triggered_id
     if triggered == "button-set-1":
@@ -307,6 +320,9 @@ def set_state(b1,b2,b3,b4, selectedData):
         state_val = 3
     elif triggered == "button-set-4":
         state_val = 4
+    elif triggered == "button-set-all-clean":
+        state_val = 1
+        x_selected = range(len(data.ssins))
     else:
         state_val = None
 
@@ -428,9 +444,6 @@ def switch_pointing(pall,p0,p1,p2,p3,p4):
     return ssins_fig, ann_fig, active[0], active[1], active[2], active[3], active[4], active[5], 
 
 
-
-
-
 @app.callback(
     Output("save-toast", "is_open"),
     Output("save-toast", "children"),
@@ -450,7 +463,6 @@ def export(n):
     # Otherwise save
     annotations_path = data.save_annotations()
     return True, f"Annotations successfully saved in {annotations_path}"
-
 
 
 if __name__ == "__main__":
