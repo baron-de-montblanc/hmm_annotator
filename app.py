@@ -108,13 +108,15 @@ app.layout = dbc.Container(
                 ),
                 dbc.Col(
                     html.H6(
-                        f"Total number of files: {data.get_n()}"
+                        f"Total number of files: {data.get_n()}",
+                        id="h6-n-files",
                     ),
                     width="auto"
                 ),
                 dbc.Col(
                     html.H6(
-                        f"Number of bad files: "
+                        f"Number of bad files: {data.count_bad()}",
+                        id="h6-count-bad",
                     ),
                     width="auto"
                 )
@@ -385,6 +387,9 @@ def set_state(b1,b2,b3,b4,ball, selectedData):
     Output("annotation-graph", "figure"),
     Output("button-prev", "disabled"),
     Output("button-next", "disabled"),
+    Output("button-bad", "children"),
+    Output("button-bad", "color"),
+    Output("h6-count-bad", "children"),
     Input("button-prev", "n_clicks"),
     Input("button-next", "n_clicks"),
     prevent_initial_call=False,
@@ -404,13 +409,15 @@ def change_night(prev_clicks, next_clicks):
     # on first load (no trigger), just set disabled states
     trigger = ctx.triggered_id
     if not trigger:
-        return no_update, no_update, prev_disabled, next_disabled
+        return no_update, no_update, prev_disabled, next_disabled, no_update, no_update, no_update
 
     # edge guards: do nothing if already at an endpoint
     if trigger == "button-prev" and cur_idx == 0:
-        return no_update, no_update, True, next_disabled
+        return no_update, no_update, True, next_disabled, \
+                get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
     if trigger == "button-next" and cur_idx == max_idx:
-        return no_update, no_update, prev_disabled, True
+        return no_update, no_update, prev_disabled, True, \
+                get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
 
     direction = -1 if trigger == "button-prev" else +1
     new_idx = cur_idx + direction
@@ -426,7 +433,8 @@ def change_night(prev_clicks, next_clicks):
     ssins_fig = _build_ssins_figure()
     ann_fig = _build_annotations_figure()
 
-    return ssins_fig, ann_fig, new_prev_disabled, new_next_disabled
+    return ssins_fig, ann_fig, new_prev_disabled, new_next_disabled, \
+            get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
 
 
 
@@ -439,6 +447,10 @@ def change_night(prev_clicks, next_clicks):
     Output("button-p-2", "active"),
     Output("button-p-3", "active"),
     Output("button-p-4", "active"),
+    Output("button-bad", "children", allow_duplicate=True),
+    Output("button-bad", "color", allow_duplicate=True),
+    Output("h6-count-bad", "children", allow_duplicate=True),
+    Output("h6-n-files", "children"),
     Input("button-p-all", "n_clicks"),
     Input("button-p-0", "n_clicks"),
     Input("button-p-1", "n_clicks"),
@@ -477,7 +489,9 @@ def switch_pointing(pall,p0,p1,p2,p3,p4):
     ssins_fig = _build_ssins_figure()
     ann_fig = _build_annotations_figure()
 
-    return ssins_fig, ann_fig, active[0], active[1], active[2], active[3], active[4], active[5], 
+    return ssins_fig, ann_fig, active[0], active[1], active[2], active[3], active[4], active[5], \
+            get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}", \
+            f"Total number of files: {data.get_n()}"
 
 
 @app.callback(
@@ -502,17 +516,22 @@ def export(n):
 
 
 @app.callback(
-    Output("button-bad", "children"),
-    Output("button-bad", "color"),
+    Output("button-bad", "children", allow_duplicate=True),
+    Output("button-bad", "color", allow_duplicate=True),
+    Output("h6-count-bad", "children", allow_duplicate=True),
     Input("button-bad", "n_clicks"),
     prevent_initial_call=True,
 )
-def reject_accept(n):
-    if data.good:
-        data.mark_bad()
-    else:
-        data.mark_good()
-    return get_good(data)
+def reject_accept(nbad):
+
+    triggered = ctx.triggered_id
+    if triggered == "button-bad":
+        if data.good:
+            data.mark_bad()
+        else:
+            data.mark_good()
+
+    return get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
 
 
 if __name__ == "__main__":
