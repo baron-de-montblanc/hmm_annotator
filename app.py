@@ -31,17 +31,13 @@ data = Dataset('assets')
 # ==================================== Helper functions =====================================
 
 
-from dash import callback, Output, Input, no_update, ctx
-import numpy as np
-import plotly.graph_objects as go
-
 def _make_ssins_layout():
     return go.Layout(
         title=dict(
-            text=f"SSINS Background-Subtracted Time-Series (Night of {data.night}, pointing {data.pointing})",
+            text=f"SSINS Background-Subtracted Time-Series Avg. Across DTV7 (Night of {data.night}, pointing {data.pointing})",
             x=0.5, xanchor="center", font=dict(size=18)
         ),
-        xaxis=dict(title="Frequency Step", type="linear", range=[-5, len(data.ssins)+5]),
+        xaxis=dict(title="Time Step", type="linear", range=[-5, len(data.ssins)+5]),
         yaxis=dict(title="Amplitude Across DTV-7", type="linear"),
         font=dict(size=14),
         autosize=True,
@@ -52,7 +48,7 @@ def _make_ssins_layout():
 def _make_annotations_layout():
     return go.Layout(
         title=dict(text="Annotations", x=0.5, xanchor="center", font=dict(size=18)),
-        xaxis=dict(title="Frequency Step", type="linear", range=[-5, len(data.ssins)+5]),
+        xaxis=dict(title="Time Step", type="linear", range=[-5, len(data.ssins)+5]),
         yaxis=dict(title="HMM State", type="linear", range=[0.5, 4.5], tickmode="array", tickvals=[1,2,3,4]),
         font=dict(size=14),
         autosize=True,
@@ -79,6 +75,12 @@ def _build_annotations_figure():
     ))
     return fig
 
+def get_good(d):
+    if d.good:
+        return "Reject Dataset", "danger"
+    else:
+        return "Accept Dataset", "info"
+
 
 # ==================================== App Layout =====================================
 
@@ -91,6 +93,31 @@ app.layout = dbc.Container(
                     "HMM Annotator",
                     className="text-center mt-2",
                 ),
+            ],
+            className="mt-0",
+            justify="center",
+            align="center",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.H6(
+                        f"Data source: {data._path}"
+                    ),
+                    width="auto"
+                ),
+                dbc.Col(
+                    html.H6(
+                        f"Total number of files: {data.get_n()}"
+                    ),
+                    width="auto"
+                ),
+                dbc.Col(
+                    html.H6(
+                        f"Number of bad files: "
+                    ),
+                    width="auto"
+                )
             ],
             className="mt-0",
             justify="center",
@@ -160,11 +187,20 @@ app.layout = dbc.Container(
                     className="text-start"
                 ),
                 dbc.Col(
+                    [
                     dbc.Button(
                         "Export Annotations",
                         id="button-export",
-                        color="secondary"
+                        color="primary",
+                        style={"marginRight": "5px"}
                         ),
+                    dbc.Button(
+                        get_good(data)[0],
+                        id="button-bad",
+                        color=get_good(data)[1],
+                        style={"marginLeft": "5px"}
+                        ),
+                    ],
                     width=4,
                     className="text-center"
                 ),
@@ -463,6 +499,20 @@ def export(n):
     # Otherwise save
     annotations_path = data.save_annotations()
     return True, f"Annotations successfully saved in {annotations_path}"
+
+
+@app.callback(
+    Output("button-bad", "children"),
+    Output("button-bad", "color"),
+    Input("button-bad", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reject_accept(n):
+    if data.good:
+        data.mark_bad()
+    else:
+        data.mark_good()
+    return get_good(data)
 
 
 if __name__ == "__main__":

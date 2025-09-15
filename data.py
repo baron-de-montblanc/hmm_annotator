@@ -14,6 +14,11 @@ class Dataset:
         if len(self.filenames) > 0:
             self.set_filename(self.filenames[0])
 
+        if "bad" in self.filename:
+            self.good = False
+        else:
+            self.good = True
+
     def _set_ssins(self, filename):
         self.filename = filename
         path = os.path.join(self._data_path, filename)
@@ -48,14 +53,47 @@ class Dataset:
         _new_filenames = sorted([f for f in os.listdir(self._data_path) if pointing in f])
         self.filenames = _new_filenames
         self.set_filename(self.filenames[0])
+
+    def mark_bad(self):
+        self.good = False
+        self._rename_filename()
+
+    def mark_good(self):
+        self.good = True
+        self._rename_filename()
+
+    def _rename_filename(self):
+
+        if self.good:
+            if "bad_" in self.filename:
+                new_name = self.filename.split("bad_")[1]
+            else:
+                new_name = self.filename
+
+        else:
+            if "bad_" not in self.filename:
+                new_name = "bad_" + self.filename
+            else:
+                new_name = self.filename
+
+        old_name = os.path.join(self._data_path, self.filename)
+        new_path = os.path.join(self._data_path, new_name)
+
+        if old_name != new_path:
+            os.rename(old_name, new_path)
+
+        self.filename = new_name
+
+
+    def get_n(self):
+        return len(self.filenames)
     
     def load_annotations(self):
         return self._initialize_annotations(return_annotations=True)
 
 if __name__ == "__main__":
     data = Dataset("assets")
-    print(data.filenames)
-
-    data.set_pointing('p0')
-    print(data.filenames)
+    print(data.good)
+    data.mark_good()
+    print(data.good)
 
