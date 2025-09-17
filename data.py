@@ -11,6 +11,7 @@ class Dataset:
         self._data_path = os.path.join(self._path, "raw_data/")
         self._annotation_path = os.path.join(self._path,"annotations/")
         self.filenames = self._sorted_files()
+        self.pointing_group = "p"
 
         if len(self.filenames) > 0:
             self.set_filename(self.filenames[0])
@@ -53,6 +54,7 @@ class Dataset:
     def set_pointing(self, pointing):
         self.filenames = self._sorted_files(p=pointing)
         self.set_filename(self.filenames[0])
+        self.pointing_group = pointing
 
     def mark_bad(self):
         self.good = False
@@ -90,6 +92,10 @@ class Dataset:
 
     def count_bad(self):
         return sum(1 for f in self.filenames if f.startswith("bad_"))
+    
+    def count_annotations(self, p="p"):
+        p_annot = [f for f in os.listdir(self._annotation_path) if p in f]
+        return len(p_annot)
 
     def get_n(self):
         return len(self.filenames)

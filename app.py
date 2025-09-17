@@ -10,15 +10,10 @@ from dash import (
     ctx,
     ALL,
 )
-import dash
-import math
 import numpy as np
 import plotly.graph_objects as go
-import plotly.colors as colors
 import dash_bootstrap_components as dbc
-import json
 import config
-import re
 
 from data import Dataset
 
@@ -110,6 +105,13 @@ app.layout = dbc.Container(
                     html.H6(
                         f"Total number of files: {data.get_n()}",
                         id="h6-n-files",
+                    ),
+                    width="auto"
+                ),
+                dbc.Col(
+                    html.H6(
+                        f"Number of annotated files: {data.count_annotations()}",
+                        id="h6-count-annotations",
                     ),
                     width="auto"
                 ),
@@ -328,6 +330,10 @@ app.layout = dbc.Container(
 )
 
 
+# ======================================= Server Setup =================================
+
+server = app.server
+
 # ======================================= Callback functions ===========================
 
 
@@ -389,7 +395,6 @@ def set_state(b1,b2,b3,b4,ball, selectedData):
     Output("button-next", "disabled"),
     Output("button-bad", "children"),
     Output("button-bad", "color"),
-    Output("h6-count-bad", "children"),
     Input("button-prev", "n_clicks"),
     Input("button-next", "n_clicks"),
     prevent_initial_call=False,
@@ -409,15 +414,15 @@ def change_night(prev_clicks, next_clicks):
     # on first load (no trigger), just set disabled states
     trigger = ctx.triggered_id
     if not trigger:
-        return no_update, no_update, prev_disabled, next_disabled, no_update, no_update, no_update
+        return no_update, no_update, prev_disabled, next_disabled, no_update, no_update
 
     # edge guards: do nothing if already at an endpoint
     if trigger == "button-prev" and cur_idx == 0:
         return no_update, no_update, True, next_disabled, \
-                get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
+                get_good(data)[0], get_good(data)[1]
     if trigger == "button-next" and cur_idx == max_idx:
         return no_update, no_update, prev_disabled, True, \
-                get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
+                get_good(data)[0], get_good(data)[1]
 
     direction = -1 if trigger == "button-prev" else +1
     new_idx = cur_idx + direction
@@ -434,7 +439,7 @@ def change_night(prev_clicks, next_clicks):
     ann_fig = _build_annotations_figure()
 
     return ssins_fig, ann_fig, new_prev_disabled, new_next_disabled, \
-            get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}"
+            get_good(data)[0], get_good(data)[1]
 
 
 
@@ -451,6 +456,7 @@ def change_night(prev_clicks, next_clicks):
     Output("button-bad", "color", allow_duplicate=True),
     Output("h6-count-bad", "children", allow_duplicate=True),
     Output("h6-n-files", "children"),
+    Output("h6-count-annotations", "children"),
     Input("button-p-all", "n_clicks"),
     Input("button-p-0", "n_clicks"),
     Input("button-p-1", "n_clicks"),
@@ -491,12 +497,13 @@ def switch_pointing(pall,p0,p1,p2,p3,p4):
 
     return ssins_fig, ann_fig, active[0], active[1], active[2], active[3], active[4], active[5], \
             get_good(data)[0], get_good(data)[1], f"Number of bad files: {data.count_bad()}", \
-            f"Total number of files: {data.get_n()}"
+            f"Total number of files: {data.get_n()}", f"Number of annotated files: {data.count_annotations(p)}"
 
 
 @app.callback(
     Output("save-toast", "is_open"),
     Output("save-toast", "children"),
+    Output("h6-count-annotations", "children", allow_duplicate=True),
     Input("button-export", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -508,11 +515,12 @@ def export(n):
     missing = int(np.count_nonzero(data.annotations == 0))
     if missing > 0:
         msg = f"Export blocked: {missing} unannotated point(s) remain. Label all points (1, 2, or 3) before exporting."
-        return True, msg
+        return True, msg, no_update
 
     # Otherwise save
     annotations_path = data.save_annotations()
-    return True, f"Annotations successfully saved in {annotations_path}"
+    return True, f"Annotations successfully saved in {annotations_path}", \
+            f"Number of annotated files: {data.count_annotations(data.pointing_group)}"
 
 
 @app.callback(
@@ -535,8 +543,10 @@ def reject_accept(nbad):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, 
-            host=config.BIND_ADDR, 
-            port=config.BIND_PORT,
-            dev_tools_hot_reload=False,
-            )
+    # app.run(debug=True, 
+    #         host=config.BIND_ADDR, 
+    #         port=config.BIND_PORT,
+    #         dev_tools_hot_reload=False,
+    #         )
+
+    app.run_server(debug=True)
